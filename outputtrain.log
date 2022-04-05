@@ -1,0 +1,16 @@
+pn_history max(lengths): 323
+feature_text max(lengths): 28
+max_len: 354
+========== fold: 0 training ==========
+pn_history max(lengths): 323
+feature_text max(lengths): 28
+max_len: 354
+pn_history max(lengths): 323
+feature_text max(lengths): 28
+max_len: 354
+pn_history max(lengths): 323
+feature_text max(lengths): 28
+max_len: 354
+pn_history max(lengths): 323
+feature_text max(lengths): 28
+max_len: 354
