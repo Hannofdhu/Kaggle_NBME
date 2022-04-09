@@ -1,9 +1,14 @@
 #from config.config1 import *
 from utils.utils1 import *
-from data_processor.data_processor1 import *
+from data_processor.data_processor1 import TrainDataset
 from model.model1 import *
 LOGGER = get_logger()
 device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+
+# from main1 import CFG
+import config.config1 as Config
+CFG = Config.CFG()
+
 # import wandb
 import gc
 import time

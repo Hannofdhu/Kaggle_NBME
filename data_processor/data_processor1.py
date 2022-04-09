@@ -2,6 +2,7 @@
 
 
 from utils.utils1 import get_logger
+# from main1 import CFG
 import config.config1 as Config
 CFG = Config.CFG()
 LOGGER = get_logger()
