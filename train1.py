@@ -23,10 +23,6 @@ from torch.optim import Adam, SGD, AdamW
 from torch.utils.data import DataLoader, Dataset
 # os.system('pip uninstall -y transformers')
 # os.system('python -m pip install --no-index --find-links=../input/nbme-pip-wheels transformers')
-import tokenizers
-import transformers
-print(f"tokenizers.__version__: {tokenizers.__version__}")
-print(f"transformers.__version__: {transformers.__version__}")
 from transformers import get_linear_schedule_with_warmup, get_cosine_schedule_with_warmup
 #%env TOKENIZERS_PARALLELISM= true
 # ====================================================

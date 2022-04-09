@@ -1,8 +1,19 @@
-from config.config1 import *
-from data_processor.data_processor1 import *
-from model.model1 import *
+#import config.config1 as CFG
+#from data_processor.data_processor1 import *
+#from model.model1 import *
+#from utils.utils1 import *
+#import train1
+
+
+
+import config.config1 as Config
+CFG = Config.CFG()
+from train1 import train_loop
+from data_processor.data_processor1 import Data_Prepare
+from utils.utils1 import get_logger
+LOGGER = get_logger()
 from utils.utils1 import *
-import train1
+
 """
 目前共训练5轮，每轮2860批，batch_size=4
 """
@@ -17,7 +28,8 @@ from pathlib import Path
 #根据transformers的安装地址定
 transformers_path = Path("/Users/hann/miniforge3/envs/dl_mac/lib/python3.8/site-packages/transformers")
 
-input_dir =  Path("/datasets/deberta-v2-3-fast-tokenizer")
+#
+input_dir =Path("/Users/hann/Documents/ju_code/Kaggle_NBME/datasets/deberta-v2-3-fast-tokenizer")
 
 convert_file = input_dir / "convert_slow_tokenizer.py"
 conversion_path = transformers_path/convert_file.name
@@ -65,7 +77,8 @@ print(f"transformers.__version__: {transformers.__version__}")
 
 device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
-
+#准备数据和词嵌入
+train,CFG.tokenizer = Data_Prepare()
 
 if __name__ == '__main__':
 
@@ -86,7 +99,7 @@ if __name__ == '__main__':
         for fold in range(CFG.n_fold):
             if fold in CFG.trn_fold:
                 #准备训练测试数据，设置优化器，调度器，损失函数
-                _oof_df = train1.train_loop(train, fold)
+                _oof_df = train_loop(train, fold)
                 oof_df = pd.concat([oof_df, _oof_df])
                 LOGGER.info(f"========== fold: {fold} result ==========")
                 get_result(_oof_df)
