@@ -1,4 +1,4 @@
-from config.config1 import *
+#from config.config1 import *
 from utils.utils1 import *
 from data_processor.data_processor1 import *
 from model.model1 import *

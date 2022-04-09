@@ -12,7 +12,7 @@ import torch
 # ====================================================
 import os
 
-OUTPUT_DIR = '../output'
+OUTPUT_DIR = '/kaggle/working'
 if not os.path.exists(OUTPUT_DIR):
     os.makedirs(OUTPUT_DIR)
 

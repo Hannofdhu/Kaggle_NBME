@@ -7,7 +7,7 @@ class CFG:
     _wandb_kernel = 'nakama'
     debug = False
     apex = True
-    print_freq = 100
+    print_freq = 1
     num_workers = 4
     model = "microsoft/deberta-v3-large"
     #余弦学习速率调度器
