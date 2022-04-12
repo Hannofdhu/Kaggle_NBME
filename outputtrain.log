@@ -1056,3 +1056,31 @@ max_len: 354
 max_len: 354
 max_len: 354
 max_len: 354
+pn_history max(lengths): 323
+pn_history max(lengths): 323
+pn_history max(lengths): 323
+pn_history max(lengths): 323
+feature_text max(lengths): 28
+feature_text max(lengths): 28
+feature_text max(lengths): 28
+feature_text max(lengths): 28
+max_len: 354
+max_len: 354
+max_len: 354
+max_len: 354
+pn_history max(lengths): 323
+pn_history max(lengths): 323
+pn_history max(lengths): 323
+pn_history max(lengths): 323
+feature_text max(lengths): 28
+feature_text max(lengths): 28
+feature_text max(lengths): 28
+feature_text max(lengths): 28
+max_len: 354
+max_len: 354
+max_len: 354
+max_len: 354
+========== fold: 0 training ==========
+========== fold: 0 training ==========
+========== fold: 0 training ==========
+========== fold: 0 training ==========

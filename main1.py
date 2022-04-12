@@ -1,11 +1,3 @@
-#import config.config1 as CFG
-#from data_processor.data_processor1 import *
-#from model.model1 import *
-#from utils.utils1 import *
-#import train1
-
-
-
 import config.config1 as Config
 CFG = Config.CFG()
 from train1 import train_loop
@@ -136,6 +128,9 @@ if __name__ == '__main__':
     # if CFG.wandb:
     #     wandb.finish()
 
-
+"""
+1.今天第二次提交的比第一次好的话，就从那个模型再优化一下。"Adam"，dropout，可不可以看一下（周）   epoch，损失函数(包)。
+2.试试模型ensemble。
+"""
 
 
