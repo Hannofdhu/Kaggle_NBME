@@ -223,6 +223,13 @@ def Data_Prepare():
 
     #"microsoft/deberta-v3-large"
     tokenizer = DebertaV2TokenizerFast.from_pretrained(CFG.model)
+    """
+    PreTrainedTokenizerFast(name_or_path='microsoft/deberta-v3-large', vocab_size=128000, 
+    model_max_len=1000000000000000019884624838656, is_fast=True, padding_side='right', 
+    truncation_side='right', special_tokens={'bos_token': '[CLS]', 'eos_token': '[SEP]', 
+    'unk_token': '[UNK]', 'sep_token': '[SEP]', 'pad_token': '[PAD]', 
+    'cls_token': '[CLS]', 'mask_token': '[MASK]'})
+    """
     CFG.tokenizer = tokenizer
 
     # ====================================================

@@ -78,7 +78,7 @@ def train_fn(fold, train_loader, model, criterion, optimizer, epoch, scheduler, 
         labels = labels.to(device)
         batch_size = labels.size(0)
         with torch.cuda.amp.autocast(enabled=CFG.apex):
-            #用"microsoft/deberta-v3-large"直接预测 得到[4,354,1]维张量
+            #用"microsoft/deberta-v3-large"直接输出 得到[4,354,1]维张量
             y_preds = model(inputs)
         #criterion：nn.BCEWithLogitsLoss(reduction="none")
         #[1416,1]
@@ -179,6 +179,14 @@ def train_loop(folds, fold):
     #测试集的location
     valid_labels = create_labels_for_scoring(valid_folds)
     #初始化数据
+    """
+    成员变量：
+    self.cfg = cfg
+    self.feature_texts = df['feature_text'].values
+    self.pn_historys = df['pn_history'].values
+    self.annotation_lengths = df['annotation_length'].values
+    self.locations = df['location'].values
+    """
     train_dataset = TrainDataset(CFG, train_folds)
     valid_dataset = TrainDataset(CFG, valid_folds)
 
@@ -200,6 +208,9 @@ def train_loop(folds, fold):
     #优化器
     def get_optimizer_params(model, encoder_lr, decoder_lr, weight_decay=0.0):
         param_optimizer = list(model.named_parameters())
+        #param_optimizer = ','.join(param_optimizer)
+        print(f'模型优化器有如下几种：{param_optimizer}')
+        #衰减？
         no_decay = ["bias", "LayerNorm.bias", "LayerNorm.weight"]
         optimizer_parameters = [
             {'params': [p for n, p in model.model.named_parameters() if not any(nd in n for nd in no_decay)],
@@ -238,7 +249,7 @@ def train_loop(folds, fold):
     # ====================================================
     # loop
     # ====================================================
-    #损失函数
+    #
     criterion = nn.BCEWithLogitsLoss(reduction="none")
 
     best_score = 0.

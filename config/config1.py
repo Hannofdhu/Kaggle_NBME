@@ -6,6 +6,7 @@ class CFG:
     competition = 'NBME'
     _wandb_kernel = 'nakama'
     debug = False
+    #混合精度
     apex = True
     print_freq = 1
     num_workers = 4
@@ -29,7 +30,7 @@ class CFG:
     max_grad_norm = 1000
     seed = 42
     n_fold = 5
-    trn_fold = [0]
+    trn_fold = [0,1,2,3,4]
     train = True
 
 #debug模式设置轮次为2
