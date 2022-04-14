@@ -21,7 +21,7 @@ class CFG:
     decoder_lr = 2e-5
     min_lr = 1e-6
     eps = 1e-6
-    betas = (0.9, 0.999)
+    betas = (0.9, 0.999)#原文用的是0.9,0.98
     batch_size = 4
     fc_dropout = 0.2
     max_len = 512
@@ -68,3 +68,5 @@ if CFG.debug:
 #                      group=CFG.model,
 #                      job_type="train",
 #                      anonymous=anony)
+
+#ALBERT  事件抽取属性抽取

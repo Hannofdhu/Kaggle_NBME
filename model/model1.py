@@ -34,6 +34,7 @@ class CustomModel(nn.Module):
         else:
             self.config = torch.load(config_path)
         if pretrained:
+            #特征抽取
             self.model = AutoModel.from_pretrained(cfg.model, config=self.config)
         else:
             self.model = AutoModel(self.config)
@@ -61,6 +62,7 @@ class CustomModel(nn.Module):
 
     def forward(self, inputs):
         feature = self.feature(inputs)
+        #在后面设计网络：事件抽取
         output = self.fc(self.fc_dropout(feature))
         return output
 

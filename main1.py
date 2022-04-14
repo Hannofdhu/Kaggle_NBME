@@ -84,6 +84,7 @@ if __name__ == '__main__':
         labels = create_labels_for_scoring(oof_df)
         predictions = oof_df[[i for i in range(CFG.max_len)]].values
         char_probs = get_char_probs(oof_df['pn_history'].values, predictions, CFG.tokenizer)
+        #
         results = get_results(char_probs, th=0.5)
         preds = get_predictions(results)
         score = get_score(labels, preds)
@@ -131,6 +132,9 @@ if __name__ == '__main__':
 """
 1.今天第二次提交的比第一次好的话，就从那个模型再优化一下。"Adam"，dropout，可不可以看一下（周）   epoch，损失函数(包)。
 2.试试模型ensemble。
+3.医疗bert/https://huggingface.co/
+4.对feature接分类结构
+5.bert+lstm+crf.处理数据集形式
 """
 
 
