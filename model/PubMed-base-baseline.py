@@ -1,98 +1,16 @@
-"""
-目前共训练5轮，每轮2860批，batch_size=4
-"""
-# ====================================================
-# 初始化
-# ====================================================
+# %% [markdown]
+# “”“
+# 改了tokenizer，改了self.model
+# ”“”
 
-
-
-#设置文件夹
-# ====================================================
-# Directory settings
-# ====================================================
+# %% [code] {"execution":{"iopub.status.busy":"2022-04-14T01:39:45.933663Z","iopub.execute_input":"2022-04-14T01:39:45.934202Z","iopub.status.idle":"2022-04-14T01:39:45.962494Z","shell.execute_reply.started":"2022-04-14T01:39:45.934108Z","shell.execute_reply":"2022-04-14T01:39:45.961808Z"},"jupyter":{"outputs_hidden":false}}
 import os
 
 OUTPUT_DIR = '../output'
 if not os.path.exists(OUTPUT_DIR):
     os.makedirs(OUTPUT_DIR)
 
-
-
-# ====================================================
-# CFG：Config
-# ====================================================
-class CFG:
-    wandb = False
-    competition = 'NBME'
-    _wandb_kernel = 'nakama'
-    debug = False
-    apex = True
-    print_freq = 100
-    num_workers = 4
-    model = "microsoft/deberta-v3-large"
-    #余弦学习速率调度器
-    scheduler = 'cosine'  # ['linear', 'cosine']
-    batch_scheduler = True
-    num_cycles = 0.5
-    num_warmup_steps = 0
-    epochs = 5
-    encoder_lr = 2e-5
-    decoder_lr = 2e-5
-    min_lr = 1e-6
-    eps = 1e-6
-    betas = (0.9, 0.999)
-    batch_size = 4
-    fc_dropout = 0.2
-    max_len = 512
-    weight_decay = 0.01
-    gradient_accumulation_steps = 1
-    max_grad_norm = 1000
-    seed = 42
-    n_fold = 5
-    trn_fold = [0]
-    train = True
-
-#debug模式设置轮次为2
-if CFG.debug:
-    CFG.epochs = 2
-    CFG.trn_fold = [0]
-
-# ====================================================
-# wandb
-# ====================================================
-if CFG.wandb:
-
-    import wandb
-
-    try:
-        from kaggle_secrets import UserSecretsClient
-
-        user_secrets = UserSecretsClient()
-        secret_value_0 = user_secrets.get_secret("wandb_api")
-        wandb.login(key=secret_value_0)
-        anony = None
-    except:
-        anony = "must"
-        print(
-            'If you want to use your W&B account, go to Add-ons -> Secrets and provide your W&B access token. Use the Label name as wandb_api. \nGet your W&B access token from here: https://wandb.ai/authorize')
-
-
-    def class2dict(f):
-        return dict((name, getattr(f, name)) for name in dir(f) if not name.startswith('__'))
-
-
-    run = wandb.init(project='NBME-Public',
-                     name=CFG.model,
-                     config=class2dict(CFG),
-                     group=CFG.model,
-                     job_type="train",
-                     anonymous=anony)
-
-# ====================================================
-# Library
-# ====================================================
-import os
+# %% [code] {"execution":{"iopub.status.busy":"2022-04-14T01:39:45.965378Z","iopub.execute_input":"2022-04-14T01:39:45.965775Z","iopub.status.idle":"2022-04-14T01:39:52.275607Z","shell.execute_reply.started":"2022-04-14T01:39:45.965741Z","shell.execute_reply":"2022-04-14T01:39:52.274892Z"},"jupyter":{"outputs_hidden":false}}
 import gc
 import re
 import ast
@@ -107,11 +25,13 @@ import random
 import joblib
 import itertools
 import warnings
+
 warnings.filterwarnings("ignore")
 
 import scipy as sp
 import numpy as np
 import pandas as pd
+
 pd.set_option('display.max_rows', 500)
 pd.set_option('display.max_columns', 500)
 pd.set_option('display.width', 1000)
@@ -126,23 +46,25 @@ import torch.nn.functional as F
 from torch.optim import Adam, SGD, AdamW
 from torch.utils.data import DataLoader, Dataset
 
-# os.system('pip uninstall -y transformers')
-# os.system('python -m pip install --no-index --find-links=../input/nbme-pip-wheels transformers')
 import tokenizers
 import transformers
+
 print(f"tokenizers.__version__: {tokenizers.__version__}")
 print(f"transformers.__version__: {transformers.__version__}")
-from transformers import AutoTokenizer, AutoModel, AutoConfig
+from transformers import AutoModel, AutoConfig
+from transformers import AutoTokenizer, AutoModelForMaskedLM
 from transformers import get_linear_schedule_with_warmup, get_cosine_schedule_with_warmup
-#%env TOKENIZERS_PARALLELISM= true
-
+import os
+os.environ["TOKENIZERS_PARALLELISM"] = "false"
 
 device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+print(device)
 
 
+# %% [markdown]
+# # Utils.Metrics
 
-# From https://www.kaggle.com/theoviel/evaluation-metric-folds-baseline
-
+# %% [code] {"execution":{"iopub.status.busy":"2022-04-14T01:39:52.277181Z","iopub.execute_input":"2022-04-14T01:39:52.278167Z","iopub.status.idle":"2022-04-14T01:39:52.287600Z","shell.execute_reply.started":"2022-04-14T01:39:52.278129Z","shell.execute_reply":"2022-04-14T01:39:52.286789Z"},"jupyter":{"outputs_hidden":false}}
 def micro_f1(preds, truths):
     """
     Micro f1 on binary arrays.
@@ -198,7 +120,9 @@ def span_micro_f1(preds, truths):
         bin_truths.append(spans_to_binary(truth, length))
     return micro_f1(bin_preds, bin_truths)
 
-#建立location_for_create_labels字段，将location集中并转换为嵌套列表类似[[[455, 480]], [[177, 191]], [[124, 135]]]
+
+# %% [code] {"execution":{"iopub.status.busy":"2022-04-14T01:39:52.288866Z","iopub.execute_input":"2022-04-14T01:39:52.289300Z","iopub.status.idle":"2022-04-14T01:39:52.305606Z","shell.execute_reply.started":"2022-04-14T01:39:52.289255Z","shell.execute_reply":"2022-04-14T01:39:52.304915Z"},"jupyter":{"outputs_hidden":false}}
+# 建立location_for_create_labels字段，将location集中并转换为嵌套列表类似[[[455, 480]], [[177, 191]], [[124, 135]]]
 def create_labels_for_scoring(df):
     # example: ['0 1', '3 4'] -> ['0 1; 3 4']
     df['location_for_create_labels'] = [ast.literal_eval(f'[]')] * len(df)
@@ -221,10 +145,8 @@ def create_labels_for_scoring(df):
 
 
 def get_char_probs(texts, predictions, tokenizer):
-    #真实值同size的全0向量
     results = [np.zeros(len(t)) for t in texts]
     for i, (text, prediction) in enumerate(zip(texts, predictions)):
-        #真实值编码
         encoded = tokenizer(text,
                             add_special_tokens=True,
                             return_offsets_mapping=True)
@@ -258,9 +180,7 @@ def get_predictions(results):
     return predictions
 
 
-# ====================================================
-# Utils
-# ====================================================
+# %% [code] {"execution":{"iopub.status.busy":"2022-04-14T01:39:52.307728Z","iopub.execute_input":"2022-04-14T01:39:52.308085Z","iopub.status.idle":"2022-04-14T01:39:52.321947Z","shell.execute_reply.started":"2022-04-14T01:39:52.308013Z","shell.execute_reply":"2022-04-14T01:39:52.321311Z"},"jupyter":{"outputs_hidden":false}}
 def get_score(y_true, y_pred):
     score = span_micro_f1(y_true, y_pred)
     return score
@@ -293,38 +213,36 @@ def seed_everything(seed=42):
 
 seed_everything(seed=42)
 
+# %% [markdown]
+# # Data_processor
 
-# ====================================================
-# Data Loading
-# ====================================================
-#id; case_num; pn_num ; feature_num; annotation; location
+# %% [code] {"execution":{"iopub.status.busy":"2022-04-14T01:39:52.323223Z","iopub.execute_input":"2022-04-14T01:39:52.323470Z","iopub.status.idle":"2022-04-14T01:39:53.171654Z","shell.execute_reply.started":"2022-04-14T01:39:52.323438Z","shell.execute_reply":"2022-04-14T01:39:53.170845Z"},"jupyter":{"outputs_hidden":false}}
 train = pd.read_csv('../datasets/nbme-score-clinical-patient-notes/train.csv')
+
 # 转换数据类型
 train['annotation'] = train['annotation'].apply(ast.literal_eval)
 train['location'] = train['location'].apply(ast.literal_eval)
-#feature_num; case_num ; feature_text
+
 features = pd.read_csv('../datasets/nbme-score-clinical-patient-notes/features.csv')
-#l-year-ago换成1-year-ago
+
+# l-year-ago换成1-year-ago
 def preprocess_features(features):
     features.loc[27, 'feature_text'] = "Last-Pap-smear-1-year-ago"
     return features
+
+
 features = preprocess_features(features)
-#pn_num; case_num; pn-history
 patient_notes = pd.read_csv('../datasets/nbme-score-clinical-patient-notes/patient_notes.csv')
 
 print(f"train.shape: {train.shape}")
-#display(train.head())
 print(f"features.shape: {features.shape}")
-#display(features.head())
 print(f"patient_notes.shape: {patient_notes.shape}")
-#display(patient_notes.head())
 
-#加入feature_text
+# %% [code] {"execution":{"iopub.status.busy":"2022-04-14T01:39:53.173087Z","iopub.execute_input":"2022-04-14T01:39:53.173394Z","iopub.status.idle":"2022-04-14T01:39:53.214495Z","shell.execute_reply.started":"2022-04-14T01:39:53.173357Z","shell.execute_reply":"2022-04-14T01:39:53.213684Z"},"jupyter":{"outputs_hidden":false}}
 train = train.merge(features, on=['feature_num', 'case_num'], how='left')
-#加入pn-history
 train = train.merge(patient_notes, on=['pn_num', 'case_num'], how='left')
 
-
+# %% [code] {"execution":{"iopub.status.busy":"2022-04-14T01:39:53.215941Z","iopub.execute_input":"2022-04-14T01:39:53.216330Z","iopub.status.idle":"2022-04-14T01:39:53.312908Z","shell.execute_reply.started":"2022-04-14T01:39:53.216294Z","shell.execute_reply":"2022-04-14T01:39:53.312200Z"},"jupyter":{"outputs_hidden":false}}
 # incorrect annotation
 train.loc[338, 'annotation'] = ast.literal_eval('[["father heart attack"]]')
 train.loc[338, 'location'] = ast.literal_eval('[["764 783"]]')
@@ -371,8 +289,10 @@ train.loc[2553, 'location'] = ast.literal_eval('[["308 317;376 384"]]')
 train.loc[3124, 'annotation'] = ast.literal_eval('[["sweating"]]')
 train.loc[3124, 'location'] = ast.literal_eval('[["549 557"]]')
 
-train.loc[3858, 'annotation'] = ast.literal_eval('[["previously as regular"], ["previously eveyr 28-29 days"], ["previously lasting 5 days"], ["previously regular flow"]]')
-train.loc[3858, 'location'] = ast.literal_eval('[["102 123"], ["102 112;125 141"], ["102 112;143 157"], ["102 112;159 171"]]')
+train.loc[3858, 'annotation'] = ast.literal_eval(
+    '[["previously as regular"], ["previously eveyr 28-29 days"], ["previously lasting 5 days"], ["previously regular flow"]]')
+train.loc[3858, 'location'] = ast.literal_eval(
+    '[["102 123"], ["102 112;125 141"], ["102 112;143 157"], ["102 112;159 171"]]')
 
 train.loc[4373, 'annotation'] = ast.literal_eval('[["for 2 months"]]')
 train.loc[4373, 'location'] = ast.literal_eval('[["33 45"]]')
@@ -392,16 +312,20 @@ train.loc[6016, 'location'] = ast.literal_eval('[["225 250"]]')
 train.loc[6192, 'annotation'] = ast.literal_eval('[["helps to take care of aging mother and in-laws"]]')
 train.loc[6192, 'location'] = ast.literal_eval('[["197 218;236 260"]]')
 
-train.loc[6380, 'annotation'] = ast.literal_eval('[["No hair changes"], ["No skin changes"], ["No GI changes"], ["No palpitations"], ["No excessive sweating"]]')
-train.loc[6380, 'location'] = ast.literal_eval('[["480 482;507 519"], ["480 482;499 503;512 519"], ["480 482;521 531"], ["480 482;533 545"], ["480 482;564 582"]]')
+train.loc[6380, 'annotation'] = ast.literal_eval(
+    '[["No hair changes"], ["No skin changes"], ["No GI changes"], ["No palpitations"], ["No excessive sweating"]]')
+train.loc[6380, 'location'] = ast.literal_eval(
+    '[["480 482;507 519"], ["480 482;499 503;512 519"], ["480 482;521 531"], ["480 482;533 545"], ["480 482;564 582"]]')
 
-train.loc[6562, 'annotation'] = ast.literal_eval('[["stressed due to taking care of her mother"], ["stressed due to taking care of husbands parents"]]')
+train.loc[6562, 'annotation'] = ast.literal_eval(
+    '[["stressed due to taking care of her mother"], ["stressed due to taking care of husbands parents"]]')
 train.loc[6562, 'location'] = ast.literal_eval('[["290 320;327 337"], ["290 320;342 358"]]')
 
 train.loc[6862, 'annotation'] = ast.literal_eval('[["stressor taking care of many sick family members"]]')
 train.loc[6862, 'location'] = ast.literal_eval('[["288 296;324 363"]]')
 
-train.loc[7022, 'annotation'] = ast.literal_eval('[["heart started racing and felt numbness for the 1st time in her finger tips"]]')
+train.loc[7022, 'annotation'] = ast.literal_eval(
+    '[["heart started racing and felt numbness for the 1st time in her finger tips"]]')
 train.loc[7022, 'location'] = ast.literal_eval('[["108 182"]]')
 
 train.loc[7422, 'annotation'] = ast.literal_eval('[["first started 5 yrs"]]')
@@ -413,7 +337,8 @@ train.loc[8876, 'location'] = ast.literal_eval('[["481 483;533 552"]]')
 train.loc[9027, 'annotation'] = ast.literal_eval('[["recent URI"], ["nasal stuffines, rhinorrhea, for 3-4 days"]]')
 train.loc[9027, 'location'] = ast.literal_eval('[["92 102"], ["123 164"]]')
 
-train.loc[9938, 'annotation'] = ast.literal_eval('[["irregularity with her cycles"], ["heavier bleeding"], ["changes her pad every couple hours"]]')
+train.loc[9938, 'annotation'] = ast.literal_eval(
+    '[["irregularity with her cycles"], ["heavier bleeding"], ["changes her pad every couple hours"]]')
 train.loc[9938, 'location'] = ast.literal_eval('[["89 117"], ["122 138"], ["368 402"]]')
 
 train.loc[9973, 'annotation'] = ast.literal_eval('[["gaining 10-15 lbs"]]')
@@ -431,16 +356,19 @@ train.loc[11677, 'location'] = ast.literal_eval('[["160 201"]]')
 train.loc[12124, 'annotation'] = ast.literal_eval('[["tried Ambien but it didnt work"]]')
 train.loc[12124, 'location'] = ast.literal_eval('[["325 337;349 366"]]')
 
-train.loc[12279, 'annotation'] = ast.literal_eval('[["heard what she described as a party later than evening these things did not actually happen"]]')
+train.loc[12279, 'annotation'] = ast.literal_eval(
+    '[["heard what she described as a party later than evening these things did not actually happen"]]')
 train.loc[12279, 'location'] = ast.literal_eval('[["405 459;488 524"]]')
 
-train.loc[12289, 'annotation'] = ast.literal_eval('[["experienced seeing her son at the kitchen table these things did not actually happen"]]')
+train.loc[12289, 'annotation'] = ast.literal_eval(
+    '[["experienced seeing her son at the kitchen table these things did not actually happen"]]')
 train.loc[12289, 'location'] = ast.literal_eval('[["353 400;488 524"]]')
 
 train.loc[13238, 'annotation'] = ast.literal_eval('[["SCRACHY THROAT"], ["RUNNY NOSE"]]')
 train.loc[13238, 'location'] = ast.literal_eval('[["293 307"], ["321 331"]]')
 
-train.loc[13297, 'annotation'] = ast.literal_eval('[["without improvement when taking tylenol"], ["without improvement when taking ibuprofen"]]')
+train.loc[13297, 'annotation'] = ast.literal_eval(
+    '[["without improvement when taking tylenol"], ["without improvement when taking ibuprofen"]]')
 train.loc[13297, 'location'] = ast.literal_eval('[["182 221"], ["182 213;225 234"]]')
 
 train.loc[13299, 'annotation'] = ast.literal_eval('[["yesterday"], ["yesterday"]]')
@@ -452,50 +380,89 @@ train.loc[13845, 'location'] = ast.literal_eval('[["86 94;230 236"], ["86 94;237
 train.loc[14083, 'annotation'] = ast.literal_eval('[["headache generalized in her head"]]')
 train.loc[14083, 'location'] = ast.literal_eval('[["56 64;156 179"]]')
 
-#annotation涉及几段
+
+# %% [markdown]
+# # Configuration
+
+# %% [code] {"execution":{"iopub.status.busy":"2022-04-14T01:39:53.357825Z","iopub.execute_input":"2022-04-14T01:39:53.358356Z","iopub.status.idle":"2022-04-14T01:39:53.370962Z","shell.execute_reply.started":"2022-04-14T01:39:53.358320Z","shell.execute_reply":"2022-04-14T01:39:53.370293Z"},"jupyter":{"outputs_hidden":false}}
+class CFG:
+    # 常规设置
+    wandb = False
+    competition = 'NBME'
+    _wandb_kernel = 'nakama'
+    debug = True
+    train = True
+    seed = 42
+    n_fold = 5
+    trn_fold = [0]
+
+    # 数据设置
+    batch_size = 4
+    num_workers = 4
+    max_len = 512
+    pin_memory = True
+    print_freq = 400
+
+    # 模型设置
+    model = "microsoft/BiomedNLP-PubMedBERT-base-uncased-abstract-fulltext"
+    fc_dropout = 0.2
+
+    # 优化器
+    scheduler = 'cosine'  # 余弦学习速率调度器：['linear', 'cosine']
+    batch_scheduler = True
+    num_cycles = 0.5
+    warmup_steps = 0.1
+    num_warmup_steps = 0
+    encoder_lr = 2e-5
+    decoder_lr = 2e-5
+    min_lr = 1e-6
+    eps = 1e-6
+    betas = (0.9, 0.999)
+    weight_decay = 0.01
+
+    # trainer设置
+    apex = True
+    epochs = 5
+    gradient_accumulation_steps = 1
+    max_grad_norm = 1000
+
+
+#     fast_dev_run = 0 # 快速检验，取 n 个train, val, test batches
+#     num_sanity_val_steps = 0 # 在开始前取 n 个val batches
+#     val_check_interval = 0.5
+
+# debug模式设置轮次为2
+if CFG.debug:
+    CFG.epochs = 2
+    CFG.trn_fold = [0]
+
+
+# %% [code] {"execution":{"iopub.status.busy":"2022-04-14T01:39:53.374003Z","iopub.execute_input":"2022-04-14T01:39:53.374263Z","iopub.status.idle":"2022-04-14T01:39:53.397225Z","shell.execute_reply.started":"2022-04-14T01:39:53.374235Z","shell.execute_reply":"2022-04-14T01:39:53.396423Z"},"jupyter":{"outputs_hidden":false}}
+# 实例化k折
 train['annotation_length'] = train['annotation'].apply(len)
-
-#display(train['annotation_length'].value_counts())
-
-# ====================================================
-# CV split
-# ====================================================
-
-#实例化k折
 Fold = GroupKFold(n_splits=CFG.n_fold)
-#按照pn_num分组
-groups = train['pn_num'].values
+groups = train['pn_num'].values  # 按照pn_num分组
 
-#train['location']代表y，groups表示同一个pn_num的数据不会同时分到训练集测试集
+# train['location']代表y，groups表示同一个pn_num的数据不会同时分到训练集测试集
 for n, (train_index, val_index) in enumerate(Fold.split(train, train['location'], groups)):
     train.loc[val_index, 'fold'] = int(n)
 train['fold'] = train['fold'].astype(int)
-#display(train.groupby('fold').size())
+
 
 if CFG.debug:
-    #display(train.groupby('fold').size())
     train = train.sample(n=1000, random_state=0).reset_index(drop=True)
-    #display(train.groupby('fold').size())
 
 
-# ====================================================
+# %% [code] {"execution":{"iopub.status.busy":"2022-04-14T01:39:53.398393Z","iopub.execute_input":"2022-04-14T01:39:53.398682Z","iopub.status.idle":"2022-04-14T01:39:55.113100Z","shell.execute_reply.started":"2022-04-14T01:39:53.398649Z","shell.execute_reply":"2022-04-14T01:39:55.112230Z"},"jupyter":{"outputs_hidden":false}}
 # tokenizer
-# ====================================================
-# tokenizer = AutoTokenizer.from_pretrained(CFG.model)
-# tokenizer.save_pretrained(OUTPUT_DIR+'tokenizer/')
-# CFG.tokenizer = tokenizer
+tokenizer = AutoTokenizer.from_pretrained(CFG.model)
 
-
-from transformers.models.deberta_v2 import DebertaV2TokenizerFast
-
-#"microsoft/deberta-v3-large"
-tokenizer = DebertaV2TokenizerFast.from_pretrained(CFG.model)
 CFG.tokenizer = tokenizer
 
-# ====================================================
-# Define max_len
-# ====================================================
-#统计pn_history和feature_text的长度
+tokenizer.save_pretrained(OUTPUT_DIR + 'tokenizer/')
+
+# %% [code] {"execution":{"iopub.status.busy":"2022-04-14T01:39:55.117266Z","iopub.execute_input":"2022-04-14T01:39:55.117632Z","iopub.status.idle":"2022-04-14T01:40:20.488800Z","shell.execute_reply.started":"2022-04-14T01:39:55.117595Z","shell.execute_reply":"2022-04-14T01:40:20.488168Z"},"jupyter":{"outputs_hidden":false}}
+# 统计pn_history和feature_text的长度
 for text_col in ['pn_history']:
     pn_history_lengths = []
     tk0 = tqdm(patient_notes[text_col].fillna("").values, total=len(patient_notes))
@@ -511,29 +478,24 @@ for text_col in ['feature_text']:
         length = len(tokenizer(text, add_special_tokens=False)['input_ids'])
         features_lengths.append(length)
     LOGGER.info(f'{text_col} max(lengths): {max(features_lengths)}')
-#354
-CFG.max_len = max(pn_history_lengths) + max(features_lengths) + 3 # cls & sep & sep
+# 354
+CFG.max_len = max(pn_history_lengths) + max(features_lengths) + 3  # cls & sep & sep
 LOGGER.info(f"max_len: {CFG.max_len}")
 
 
-# ====================================================
-# Dataset
-# ====================================================
-#输入self.cfg, self.pn_historys[item], self.feature_texts[item]
+# %% [code] {"execution":{"iopub.status.busy":"2022-04-14T01:40:20.489984Z","iopub.execute_input":"2022-04-14T01:40:20.490416Z","iopub.status.idle":"2022-04-14T01:40:20.504577Z","shell.execute_reply.started":"2022-04-14T01:40:20.490381Z","shell.execute_reply":"2022-04-14T01:40:20.503559Z"},"jupyter":{"outputs_hidden":false}}
+# Data_loader
 def prepare_input(cfg, text, feature_text):
-    #inputs:{'input_ids':[],'tokentype_ids':[0，1],'attention_mask':[354维数据中判断有无单词]},均为354维
     inputs = cfg.tokenizer(text, feature_text,
                            add_special_tokens=True,
                            max_length=CFG.max_len,
                            padding="max_length",
                            return_offsets_mapping=False)
-    #将inputs，tokentype_ids，attention_mask转化为tensor
     for k, v in inputs.items():
         inputs[k] = torch.tensor(v, dtype=torch.long)
     return inputs
 
-#输入self.cfg,self.pn_historys[item],self.annotation_lengths[item],self.locations[item]
-#return_offsets_mapping=False  根据 输入的句子得到 某个词在句子中的位置
+
 def create_label(cfg, text, annotation_length, location_list):
     encoded = cfg.tokenizer(text,
                             add_special_tokens=True,
@@ -541,20 +503,15 @@ def create_label(cfg, text, annotation_length, location_list):
                             padding="max_length",
                             return_offsets_mapping=True)
     offset_mapping = encoded['offset_mapping']
-    #需要忽略的index（开始符或padding的）
     ignore_idxes = np.where(np.array(encoded.sequence_ids()) != 0)[0]
-    #text出现的地方设为0，否则为-1
     label = np.zeros(len(offset_mapping))
     label[ignore_idxes] = -1
-    #self.annotation_lengths如果不为0
     if annotation_length != 0:
         for location in location_list:
-            #遍历所有location对
             for loc in [s.split() for s in location.split(';')]:
                 start_idx = -1
                 end_idx = -1
                 start, end = int(loc[0]), int(loc[1])
-
                 for idx in range(len(offset_mapping)):
                     if (start_idx == -1) & (start < offset_mapping[idx][0]):
                         start_idx = idx - 1
@@ -564,7 +521,6 @@ def create_label(cfg, text, annotation_length, location_list):
                     start_idx = end_idx
                 if (start_idx != -1) & (end_idx != -1):
                     label[start_idx:end_idx] = 1
-    #label:text出现的地方设为0,否则为-1，有答案的地方设为1。label是354个元素的一维张量
     return torch.tensor(label, dtype=torch.float)
 
 
@@ -580,11 +536,9 @@ class TrainDataset(Dataset):
         return len(self.feature_texts)
 
     def __getitem__(self, item):
-        #输出input_ids,token_type_ids,attention_ids
         inputs = prepare_input(self.cfg,
                                self.pn_historys[item],
                                self.feature_texts[item])
-        #354个元素的一维张量，答案位置为1，非答案位置为0，第一个字符和其他padding为-1
         label = create_label(self.cfg,
                              self.pn_historys[item],
                              self.annotation_lengths[item],
@@ -592,9 +546,10 @@ class TrainDataset(Dataset):
         return inputs, label
 
 
-# ====================================================
-# Model
-# ====================================================
+# %% [markdown]
+# # Model
+
+# %% [code] {"execution":{"iopub.status.busy":"2022-04-14T01:40:20.505727Z","iopub.execute_input":"2022-04-14T01:40:20.506142Z","iopub.status.idle":"2022-04-14T01:40:20.519424Z","shell.execute_reply.started":"2022-04-14T01:40:20.506115Z","shell.execute_reply":"2022-04-14T01:40:20.518557Z"},"jupyter":{"outputs_hidden":false}}
 class CustomModel(nn.Module):
     def __init__(self, cfg, config_path=None, pretrained=False):
         super().__init__()
@@ -604,9 +559,10 @@ class CustomModel(nn.Module):
         else:
             self.config = torch.load(config_path)
         if pretrained:
-            self.model = AutoModel.from_pretrained(cfg.model, config=self.config)
+            self.model = AutoModelForMaskedLM.from_pretrained(cfg.model, config=self.config)
         else:
-            self.model = AutoModel(self.config)
+            self.model = AutoModelForMaskedLM(config = self.config)
+
         self.fc_dropout = nn.Dropout(cfg.fc_dropout)
         self.fc = nn.Linear(self.config.hidden_size, 1)
         self._init_weights(self.fc)
@@ -625,8 +581,15 @@ class CustomModel(nn.Module):
             module.weight.data.fill_(1.0)
 
     def feature(self, inputs):
+        """
+        在python中，list变量前面加星号、字典变量前面加两个星号，
+        列表前面加星号作用是将列表解开成len(list) 个独立的参数，传入函数
+        字典前面加两个星号，是将字典解开成独立的元素作为形参
+        """
         outputs = self.model(**inputs)
-        last_hidden_states = outputs[0]
+        #last_hidden_states = outputs.last_hidden_stats
+        #[0]
+        last_hidden_states = outputs.hidden_states[12]
         return last_hidden_states
 
     def forward(self, inputs):
@@ -634,11 +597,11 @@ class CustomModel(nn.Module):
         output = self.fc(self.fc_dropout(feature))
         return output
 
-# ====================================================
-# Helper functions
-# ====================================================
+
+# %% [code] {"execution":{"iopub.execute_input":"2022-04-14T01:40:20.521131Z","iopub.status.idle":"2022-04-14T01:40:20.552290Z","shell.execute_reply.started":"2022-04-14T01:40:20.521101Z","shell.execute_reply":"2022-04-14T01:40:20.551407Z"},"jupyter":{"outputs_hidden":false}}
 class AverageMeter(object):
     """Computes and stores the average and current value"""
+
     def __init__(self):
         self.reset()
 
@@ -668,31 +631,25 @@ def timeSince(since, percent):
     rs = es - s
     return '%s (remain %s)' % (asMinutes(s), asMinutes(rs))
 
-#开始训练，返回losses.avg
+
 def train_fn(fold, train_loader, model, criterion, optimizer, epoch, scheduler, device):
     model.train()
     scaler = torch.cuda.amp.GradScaler(enabled=CFG.apex)
     losses = AverageMeter()
     start = end = time.time()
     global_step = 0
-    #训练主函数：inputs包括inputs（vocab id），tokentype_ids，attention_mask;分批一批4个输入；step表示批次
     for step, (inputs, labels) in enumerate(train_loader):
         for k, v in inputs.items():
             inputs[k] = v.to(device)
         labels = labels.to(device)
         batch_size = labels.size(0)
         with torch.cuda.amp.autocast(enabled=CFG.apex):
-            #用"microsoft/deberta-v3-large"直接预测 得到[4,354,1]维张量
             y_preds = model(inputs)
-        #criterion：nn.BCEWithLogitsLoss(reduction="none")
-        #[1416,1]
         loss = criterion(y_preds.view(-1, 1), labels.view(-1, 1))
-        #平均
         loss = torch.masked_select(loss, labels.view(-1, 1) != -1).mean()
         if CFG.gradient_accumulation_steps > 1:
             loss = loss / CFG.gradient_accumulation_steps
         losses.update(loss.item(), batch_size)
-        #loss反向传播
         scaler.scale(loss).backward()
         grad_norm = torch.nn.utils.clip_grad_norm_(model.parameters(), CFG.max_grad_norm)
         if (step + 1) % CFG.gradient_accumulation_steps == 0:
@@ -703,20 +660,17 @@ def train_fn(fold, train_loader, model, criterion, optimizer, epoch, scheduler, 
             if CFG.batch_scheduler:
                 scheduler.step()
         end = time.time()
-        if step % CFG.print_freq == 0 or step == (len(train_loader)-1):
+        if step % CFG.print_freq == 0 or step == (len(train_loader) - 1):
             print('Epoch: [{0}][{1}/{2}] '
                   'Elapsed {remain:s} '
                   'Loss: {loss.val:.4f}({loss.avg:.4f}) '
-                  'Grad(标准化梯度): {grad_norm:.4f}  '
-                  'LR(学习率): {lr:.8f}  '
-                  .format(epoch+1, step, len(train_loader),
-                          remain=timeSince(start, float(step+1)/len(train_loader)),
+                  'Grad: {grad_norm:.4f}  '
+                  'LR: {lr:.8f}  '
+                  .format(epoch + 1, step, len(train_loader),
+                          remain=timeSince(start, float(step + 1) / len(train_loader)),
                           loss=losses,
                           grad_norm=grad_norm,
                           lr=scheduler.get_lr()[0]))
-        if CFG.wandb:
-            wandb.log({f"[fold{fold}] loss": losses.val,
-                       f"[fold{fold}] lr": scheduler.get_lr()[0]})
     return losses.avg
 
 
@@ -739,13 +693,13 @@ def valid_fn(valid_loader, model, criterion, device):
         losses.update(loss.item(), batch_size)
         preds.append(y_preds.sigmoid().to('cpu').numpy())
         end = time.time()
-        if step % CFG.print_freq == 0 or step == (len(valid_loader)-1):
+        if step % CFG.print_freq == 0 or step == (len(valid_loader) - 1):
             print('EVAL: [{0}/{1}] '
                   'Elapsed {remain:s} '
                   'Loss: {loss.val:.4f}({loss.avg:.4f}) '
                   .format(step, len(valid_loader),
                           loss=losses,
-                          remain=timeSince(start, float(step+1)/len(valid_loader))))
+                          remain=timeSince(start, float(step + 1) / len(valid_loader))))
     predictions = np.concatenate(preds)
     return losses.avg, predictions
 
@@ -765,24 +719,22 @@ def inference_fn(test_loader, model, device):
     return predictions
 
 
-# ====================================================
-# train loop
-# ====================================================
+# %% [code] {"execution":{"iopub.status.busy":"2022-04-14T01:40:20.553922Z","iopub.execute_input":"2022-04-14T01:40:20.554150Z","iopub.status.idle":"2022-04-14T01:40:20.578371Z","shell.execute_reply.started":"2022-04-14T01:40:20.554121Z","shell.execute_reply":"2022-04-14T01:40:20.577672Z"},"jupyter":{"outputs_hidden":false}}
 def train_loop(folds, fold):
     LOGGER.info(f"========== fold: {fold} training ==========")
 
     # ====================================================
     # loader
     # ====================================================
-    #每一折的训练集
+    # 每一折的训练集
     train_folds = folds[folds['fold'] != fold].reset_index(drop=True)
-    #每一折的测试集（20%）
+    # 每一折的测试集（20%）
     valid_folds = folds[folds['fold'] == fold].reset_index(drop=True)
-    #测试集病历
+    # 测试集病历
     valid_texts = valid_folds['pn_history'].values
-    #测试集的location
+    # 测试集的location
     valid_labels = create_labels_for_scoring(valid_folds)
-    #初始化数据
+    # 初始化数据
     train_dataset = TrainDataset(CFG, train_folds)
     valid_dataset = TrainDataset(CFG, valid_folds)
 
@@ -801,7 +753,8 @@ def train_loop(folds, fold):
     model = CustomModel(CFG, config_path=None, pretrained=True)
     torch.save(model.config, OUTPUT_DIR + 'config.pth')
     model.to(device)
-    #优化器
+
+    # 优化器
     def get_optimizer_params(model, encoder_lr, decoder_lr, weight_decay=0.0):
         param_optimizer = list(model.named_parameters())
         no_decay = ["bias", "LayerNorm.bias", "LayerNorm.weight"]
@@ -814,7 +767,8 @@ def train_loop(folds, fold):
              'lr': decoder_lr, 'weight_decay': 0.0}
         ]
         return optimizer_parameters
-    #weight_decay是什么？
+
+    # weight_decay是什么？
     optimizer_parameters = get_optimizer_params(model,
                                                 encoder_lr=CFG.encoder_lr,
                                                 decoder_lr=CFG.decoder_lr,
@@ -835,20 +789,21 @@ def train_loop(folds, fold):
                 num_cycles=cfg.num_cycles
             )
         return scheduler
-    #训练完所有epoch需要多少批
+
+    # 训练完所有epoch需要多少批
     num_train_steps = int(len(train_folds) / CFG.batch_size * CFG.epochs)
     scheduler = get_scheduler(CFG, optimizer, num_train_steps)
 
     # ====================================================
     # loop
     # ====================================================
-    #损失函数
+    # 损失函数
     criterion = nn.BCEWithLogitsLoss(reduction="none")
 
     best_score = 0.
 
     for epoch in range(CFG.epochs):
-        #一个实数
+        # 一个实数
         start_time = time.time()
 
         # train
@@ -859,7 +814,6 @@ def train_loop(folds, fold):
         predictions = predictions.reshape((len(valid_folds), CFG.max_len))
 
         # scoring
-        #得到验证集预测结果，形式是概率
         char_probs = get_char_probs(valid_texts, predictions, CFG.tokenizer)
         results = get_results(char_probs, th=0.5)
         preds = get_predictions(results)
@@ -870,11 +824,7 @@ def train_loop(folds, fold):
         LOGGER.info(
             f'Epoch {epoch + 1} - avg_train_loss: {avg_loss:.4f}  avg_val_loss: {avg_val_loss:.4f}  time: {elapsed:.0f}s')
         LOGGER.info(f'Epoch {epoch + 1} - Score: {score:.4f}')
-        if CFG.wandb:
-            wandb.log({f"[fold{fold}] epoch": epoch + 1,
-                       f"[fold{fold}] avg_train_loss": avg_loss,
-                       f"[fold{fold}] avg_val_loss": avg_val_loss,
-                       f"[fold{fold}] score": score})
+
 
         if best_score < score:
             best_score = score
@@ -893,10 +843,10 @@ def train_loop(folds, fold):
     return valid_folds
 
 
+# %% [code] {"execution":{"iopub.status.busy":"2022-04-14T01:40:24.854625Z","iopub.execute_input":"2022-04-14T01:40:24.854946Z","iopub.status.idle":"2022-04-14T01:41:06.048874Z","shell.execute_reply.started":"2022-04-14T01:40:24.854910Z","shell.execute_reply":"2022-04-14T01:41:06.029878Z"},"jupyter":{"outputs_hidden":false}}
 if __name__ == '__main__':
-
+    # 创建标签掩码
     def get_result(oof_df):
-        #创建标签掩码
         labels = create_labels_for_scoring(oof_df)
         predictions = oof_df[[i for i in range(CFG.max_len)]].values
         char_probs = get_char_probs(oof_df['pn_history'].values, predictions, CFG.tokenizer)
@@ -908,10 +858,8 @@ if __name__ == '__main__':
 
     if CFG.train:
         oof_df = pd.DataFrame()
-        #遍历每折
         for fold in range(CFG.n_fold):
             if fold in CFG.trn_fold:
-                #准备训练测试数据，设置优化器，调度器，损失函数
                 _oof_df = train_loop(train, fold)
                 oof_df = pd.concat([oof_df, _oof_df])
                 LOGGER.info(f"========== fold: {fold} result ==========")
@@ -920,10 +868,3 @@ if __name__ == '__main__':
         LOGGER.info(f"========== CV ==========")
         get_result(oof_df)
         oof_df.to_pickle(OUTPUT_DIR + 'oof_df.pkl')
-
-    if CFG.wandb:
-        wandb.finish()
-
-
-
-

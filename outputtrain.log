@@ -1084,3 +1084,111 @@ max_len: 354
 ========== fold: 0 training ==========
 ========== fold: 0 training ==========
 ========== fold: 0 training ==========
+pn_history max(lengths): 284
+feature_text max(lengths): 27
+max_len: 314
+========== fold: 0 training ==========
+pn_history max(lengths): 284
+feature_text max(lengths): 27
+max_len: 314
+========== fold: 0 training ==========
+pn_history max(lengths): 284
+feature_text max(lengths): 27
+max_len: 314
+pn_history max(lengths): 284
+feature_text max(lengths): 27
+max_len: 314
+pn_history max(lengths): 284
+feature_text max(lengths): 27
+max_len: 314
+pn_history max(lengths): 284
+feature_text max(lengths): 27
+max_len: 314
+pn_history max(lengths): 284
+feature_text max(lengths): 27
+max_len: 314
+========== fold: 0 training ==========
+pn_history max(lengths): 284
+feature_text max(lengths): 27
+max_len: 314
+pn_history max(lengths): 284
+feature_text max(lengths): 27
+max_len: 314
+pn_history max(lengths): 284
+feature_text max(lengths): 27
+max_len: 314
+pn_history max(lengths): 284
+feature_text max(lengths): 27
+max_len: 314
+pn_history max(lengths): 284
+feature_text max(lengths): 27
+max_len: 314
+========== fold: 0 training ==========
+pn_history max(lengths): 284
+feature_text max(lengths): 27
+max_len: 314
+========== fold: 0 training ==========
+pn_history max(lengths): 284
+feature_text max(lengths): 27
+max_len: 314
+========== fold: 0 training ==========
+pn_history max(lengths): 284
+feature_text max(lengths): 27
+max_len: 314
+pn_history max(lengths): 284
+feature_text max(lengths): 27
+max_len: 314
+pn_history max(lengths): 284
+feature_text max(lengths): 27
+max_len: 314
+pn_history max(lengths): 284
+feature_text max(lengths): 27
+max_len: 314
+pn_history max(lengths): 284
+feature_text max(lengths): 27
+max_len: 314
+========== fold: 0 training ==========
+pn_history max(lengths): 284
+feature_text max(lengths): 27
+max_len: 314
+pn_history max(lengths): 284
+feature_text max(lengths): 27
+max_len: 314
+pn_history max(lengths): 284
+feature_text max(lengths): 27
+max_len: 314
+pn_history max(lengths): 284
+feature_text max(lengths): 27
+max_len: 314
+pn_history max(lengths): 284
+feature_text max(lengths): 27
+max_len: 314
+========== fold: 0 training ==========
+pn_history max(lengths): 284
+feature_text max(lengths): 27
+max_len: 314
+pn_history max(lengths): 284
+feature_text max(lengths): 27
+max_len: 314
+pn_history max(lengths): 284
+feature_text max(lengths): 27
+max_len: 314
+pn_history max(lengths): 284
+feature_text max(lengths): 27
+max_len: 314
+pn_history max(lengths): 284
+feature_text max(lengths): 27
+max_len: 314
+========== fold: 0 training ==========
+pn_history max(lengths): 284
+feature_text max(lengths): 27
+max_len: 314
+pn_history max(lengths): 284
+feature_text max(lengths): 27
+max_len: 314
+pn_history max(lengths): 284
+feature_text max(lengths): 27
+max_len: 314
+pn_history max(lengths): 284
+feature_text max(lengths): 27
+max_len: 314
