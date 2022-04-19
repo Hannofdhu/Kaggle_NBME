@@ -268,8 +268,11 @@ def train_loop(folds, fold):
         # scoring
         #得到验证集预测结果，形式是概率
         char_probs = get_char_probs(valid_texts, predictions, CFG.tokenizer)
+        #将预测转化为[0 3; 5 9]的形式
         results = get_results(char_probs, th=0.5)
+        #将结果用列表储存，方便计算score
         preds = get_predictions(results)
+
         score = get_score(valid_labels, preds)
 
         elapsed = time.time() - start_time

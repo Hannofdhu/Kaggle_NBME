@@ -404,7 +404,8 @@ class CFG:
     print_freq = 400
 
     # 模型设置
-    model = "microsoft/BiomedNLP-PubMedBERT-base-uncased-abstract-fulltext"
+    #model = "microsoft/BiomedNLP-PubMedBERT-base-uncased-abstract-fulltext"
+    model = "microsoft/BiomedNLP-PubMedBERT-base-uncased-abstract"
     fc_dropout = 0.2
 
     # 优化器
@@ -559,9 +560,11 @@ class CustomModel(nn.Module):
         else:
             self.config = torch.load(config_path)
         if pretrained:
-            self.model = AutoModelForMaskedLM.from_pretrained(cfg.model, config=self.config)
+            #self.model = AutoModelForMaskedLM.from_pretrained(cfg.model, config=self.config)
+            self.model = AutoModel.from_pretrained(cfg.model, config=self.config)
         else:
-            self.model = AutoModelForMaskedLM(config = self.config)
+            #self.model = AutoModelForMaskedLM(config = self.config)
+            self.model = AutoModel(config=self.config)
 
         self.fc_dropout = nn.Dropout(cfg.fc_dropout)
         self.fc = nn.Linear(self.config.hidden_size, 1)
@@ -589,7 +592,7 @@ class CustomModel(nn.Module):
         outputs = self.model(**inputs)
         #last_hidden_states = outputs.last_hidden_stats
         #[0]
-        last_hidden_states = outputs.hidden_states[12]
+        last_hidden_states = outputs[0]
         return last_hidden_states
 
     def forward(self, inputs):

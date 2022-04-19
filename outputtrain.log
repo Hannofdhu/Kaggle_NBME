@@ -1192,3 +1192,147 @@ max_len: 314
 pn_history max(lengths): 284
 feature_text max(lengths): 27
 max_len: 314
+pn_history max(lengths): 284
+feature_text max(lengths): 27
+max_len: 314
+========== fold: 0 training ==========
+pn_history max(lengths): 284
+feature_text max(lengths): 27
+max_len: 314
+pn_history max(lengths): 284
+feature_text max(lengths): 27
+max_len: 314
+pn_history max(lengths): 284
+feature_text max(lengths): 27
+max_len: 314
+pn_history max(lengths): 284
+feature_text max(lengths): 27
+max_len: 314
+pn_history max(lengths): 291
+feature_text max(lengths): 27
+max_len: 321
+========== fold: 0 training ==========
+pn_history max(lengths): 291
+feature_text max(lengths): 27
+max_len: 321
+pn_history max(lengths): 291
+feature_text max(lengths): 27
+max_len: 321
+pn_history max(lengths): 291
+feature_text max(lengths): 27
+max_len: 321
+pn_history max(lengths): 291
+feature_text max(lengths): 27
+max_len: 321
+pn_history max(lengths): 291
+feature_text max(lengths): 27
+max_len: 321
+========== fold: 0 training ==========
+pn_history max(lengths): 291
+feature_text max(lengths): 27
+max_len: 321
+========== fold: 0 training ==========
+pn_history max(lengths): 291
+feature_text max(lengths): 27
+max_len: 321
+pn_history max(lengths): 291
+feature_text max(lengths): 27
+max_len: 321
+pn_history max(lengths): 291
+feature_text max(lengths): 27
+max_len: 321
+pn_history max(lengths): 291
+feature_text max(lengths): 27
+max_len: 321
+pn_history max(lengths): 323
+pn_history max(lengths): 323
+pn_history max(lengths): 323
+pn_history max(lengths): 323
+feature_text max(lengths): 28
+feature_text max(lengths): 28
+feature_text max(lengths): 28
+feature_text max(lengths): 28
+max_len: 354
+max_len: 354
+max_len: 354
+max_len: 354
+========== fold: 0 training ==========
+========== fold: 0 training ==========
+========== fold: 0 training ==========
+========== fold: 0 training ==========
+pn_history max(lengths): 323
+pn_history max(lengths): 323
+pn_history max(lengths): 323
+pn_history max(lengths): 323
+feature_text max(lengths): 28
+feature_text max(lengths): 28
+feature_text max(lengths): 28
+feature_text max(lengths): 28
+max_len: 354
+max_len: 354
+max_len: 354
+max_len: 354
+pn_history max(lengths): 323
+pn_history max(lengths): 323
+pn_history max(lengths): 323
+pn_history max(lengths): 323
+feature_text max(lengths): 28
+feature_text max(lengths): 28
+feature_text max(lengths): 28
+feature_text max(lengths): 28
+max_len: 354
+max_len: 354
+max_len: 354
+max_len: 354
+========== fold: 0 training ==========
+========== fold: 0 training ==========
+========== fold: 0 training ==========
+========== fold: 0 training ==========
+pn_history max(lengths): 323
+pn_history max(lengths): 323
+pn_history max(lengths): 323
+pn_history max(lengths): 323
+feature_text max(lengths): 28
+feature_text max(lengths): 28
+feature_text max(lengths): 28
+feature_text max(lengths): 28
+max_len: 354
+max_len: 354
+max_len: 354
+max_len: 354
+pn_history max(lengths): 323
+pn_history max(lengths): 323
+pn_history max(lengths): 323
+pn_history max(lengths): 323
+feature_text max(lengths): 28
+feature_text max(lengths): 28
+feature_text max(lengths): 28
+feature_text max(lengths): 28
+max_len: 354
+max_len: 354
+max_len: 354
+max_len: 354
+pn_history max(lengths): 323
+pn_history max(lengths): 323
+pn_history max(lengths): 323
+pn_history max(lengths): 323
+feature_text max(lengths): 28
+feature_text max(lengths): 28
+feature_text max(lengths): 28
+feature_text max(lengths): 28
+max_len: 354
+max_len: 354
+max_len: 354
+max_len: 354
+pn_history max(lengths): 323
+pn_history max(lengths): 323
+pn_history max(lengths): 323
+pn_history max(lengths): 323
+feature_text max(lengths): 28
+feature_text max(lengths): 28
+feature_text max(lengths): 28
+feature_text max(lengths): 28
+max_len: 354
+max_len: 354
+max_len: 354
+max_len: 354
