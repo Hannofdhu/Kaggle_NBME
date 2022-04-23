@@ -48,6 +48,7 @@ if not os.path.exists(OUTPUT_DIR):
 # ====================================================
 # CFG：Config
 # ====================================================
+
 class CFG:
     wandb = False
     competition = 'NBME'
