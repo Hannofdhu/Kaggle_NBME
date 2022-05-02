@@ -1,8 +1,13 @@
+"""
+制定训练计划
+"""
+
 # Import Library.
 import numpy as np
 import pandas as pd
 from tqdm.notebook import tqdm
-import os, re, ast, glob, itertools, spacy, transformers, torch
+# import os, re, ast, glob, itertools, spacy, transformers, torch
+import os, re, ast, glob, itertools, transformers, torch
 from transformers import AutoTokenizer, AutoConfig, AutoModel
 from torch.utils.data import Dataset, DataLoader
 import torch.nn as nn
@@ -10,8 +15,8 @@ import torch.nn as nn
 os.environ["TOKENIZERS_PARALLELISM"] = "false"
 
 DATA_PATH = "../datasets/nbme-score-clinical-patient-notes/"
-OUT_PATH = "../datasets/nbme-roberta-large/"
-WEIGHTS_FOLDER = "../input/nbme-roberta-large/"
+OUT_PATH = "/Users/hann/Downloads/archive/"
+WEIGHTS_FOLDER = "/Users/hann/Downloads/archive/"
 
 """ ------------------------------ """
 """ Data Preparation. """
@@ -129,6 +134,7 @@ def get_tokenizer(name, precompute=False, df=None, folder=None):
     if folder is None:
         tokenizer = AutoTokenizer.from_pretrained(name)
     else:
+
         tokenizer = AutoTokenizer.from_pretrained(folder)
 
     tokenizer.name = name
@@ -138,7 +144,7 @@ def get_tokenizer(name, precompute=False, df=None, folder=None):
         "cls": tokenizer.cls_token_id,
         "pad": tokenizer.pad_token_id,
     }
-
+#提前计算测试集的input_ids和offsets_mapping，以字典的形式返回
     if precompute:
         tokenizer.precomputed = precompute_tokens(df, tokenizer)
     else:
@@ -148,11 +154,15 @@ def get_tokenizer(name, precompute=False, df=None, folder=None):
 
 
 def precompute_tokens(df, tokenizer):
+    #测试集feature_texts，array形式
     feature_texts = df["feature_text"].unique()
+    #测试集的input_ids
     ids = {}
+    #测试集的offsets_mapping
     offsets = {}
 
     for feature_text in feature_texts:
+        #返回token_type_ids和offsets_mapping
         encoding = tokenizer(
             feature_text,
             return_token_type_ids=True,
@@ -162,7 +172,7 @@ def precompute_tokens(df, tokenizer):
         )
         ids[feature_text] = encoding["input_ids"]
         offsets[feature_text] = encoding["offset_mapping"]
-
+    #测试集的pn_history
     texts = df["clean_text"].unique()
 
     for text in texts:
@@ -222,7 +232,7 @@ def encodings_from_precomputed(feature_text, text, precomputed, tokenizer, max_l
 """ ------------------------------ """
 """ Torch Dataset. """
 """ ------------------------------ """
-
+#Dataset类
 
 class PatientNoteDataset(Dataset):
     def __init__(self, df, tokenizer, max_len):
@@ -293,7 +303,7 @@ def plot_annotation(df, pn_num):
 """ Model Development. """
 """ ------------------------------ """
 
-
+#Module类
 class NERTransformer(nn.Module):
     def __init__(self, model, num_classes=1, config_file=None, pretrained=True):
         super().__init__()
@@ -331,7 +341,7 @@ class NERTransformer(nn.Module):
 """ Load Weights. """
 """ ------------------------------ """
 
-
+#载入模型
 def load_model_weights(model, filename, verbose=1, cp_folder="", strict=True):
     if verbose:
         print(f"\n -> Loading weights from {os.path.join(cp_folder, filename)}\n")
@@ -355,7 +365,7 @@ def predict(model, dataset, data_config, activation="softmax"):
     with torch.no_grad():
         for data in tqdm(loader):
             ids, token_type_ids = data["ids"], data["token_type_ids"]
-            y_pred = model(ids.cuda(), token_type_ids.cuda())
+            y_pred = model(ids.cpu(), token_type_ids.cpu())
             if activation == "sigmoid":
                 y_pred = y_pred.sigmoid()
             elif activation == "softmax":
@@ -374,17 +384,20 @@ def inference_test(df, exp_folder, config, cfg_folder=None):
     preds = []
 
     if cfg_folder is not None:
+        #'/Users/hann/Downloads/archive/roberta-large/config.pth'
         model_config_file = cfg_folder + config.name.split('/')[-1] + "/config.pth"
+        #'/Users/hann/Downloads/archive/roberta-large/tokenizers/'
         tokenizer_folder = cfg_folder + config.name.split('/')[-1] + "/tokenizers/"
     else:
         model_config_file, tokenizer_folder = None, None
-
+    #分词
     tokenizer = get_tokenizer(config.name, precompute=config.precompute_tokens, df=df, folder=tokenizer_folder)
+    #Dataset类
     dataset = PatientNoteDataset(df, tokenizer, max_len=config.max_len)
     model = NERTransformer(config.name, num_classes=config.num_classes, config_file=model_config_file,
-                           pretrained=False).cuda()
+                           pretrained=False).cpu()
     model.zero_grad()
-
+    #排序预训练模型
     weights = sorted(glob.glob(exp_folder + "*.pt"))
 
     for weight in weights:
@@ -410,14 +423,16 @@ if __name__ == "__main__":
         loss_config = {"activation": "sigmoid"}
         data_config = {"val_bs": 16 if "large" in name else 32, "pad_token": 1 if "roberta" in name else 0}
         verbose = 1
-
-
+    #导入处理后的测试集，process_feature_text+clean_spaces,加空列target
     df_test = load_and_prepare_test(root=DATA_PATH)
-
+    #WEIGHTS_FOLDER、
     preds = inference_test(df_test, WEIGHTS_FOLDER, Config, cfg_folder=OUT_PATH)[0]
+
+
 
     df_test["preds"] = preds
     df_test["preds"] = df_test.apply(lambda x: x["preds"][:len(x["clean_text"])], 1)
+    #以0.5为阈值
     df_test["preds"] = df_test["preds"].apply(lambda x: (x > 0.5).flatten())
 
     try:
@@ -444,3 +459,4 @@ if __name__ == "__main__":
     sub.to_csv("submission.csv", index=False)
 
     sub.head()
+
