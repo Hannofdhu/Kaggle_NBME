@@ -46,7 +46,7 @@
 # for i in range(11):
 #     det = pd.concat([])
 
-#Bubble Sort
+#Bubble Sort冒泡排序
 # class Solution:
 #     def bubbleSort(self, arr):
 #         #排序趟数(最差n-1趟)
@@ -107,14 +107,32 @@
 #             row += directions[directionIndex][0]
 #             column += directions[directionIndex][1]
 #         return order
-matrix = [[1,2,3],[4,5,6],[7,8,9]]
-res = []
-count = 0
-while matrix:
-    count+=1
-    print(count)
-    res += matrix.pop(0)
-    matrix = list(zip(*matrix))[::-1]
+# matrix = [[1,2,3],[4,5,6],[7,8,9]]
+# res = []
+# count = 0
+# while matrix:
+#     count+=1
+#     print(count)
+#     res += matrix.pop(0)
+#     matrix = list(zip(*matrix))[::-1]
+#
+# print(res)
 
-print(res)
+#选择排序
+def selectionsort(arr):
+    #对"趟"遍历
+    for i in range(len(arr)-1):
+        min_index = i
+        for j in range(i+1,len(arr)):
+            if arr[j]<arr[min_index]:
+                min_index = j
+        if min_index!=i:
+            arr[i],arr[min_index] = arr[min_index],arr[i]
+    return arr
+
+arr = [1,3,4,2,7,6]
+
+print(selectionsort(arr))
+
+
 
